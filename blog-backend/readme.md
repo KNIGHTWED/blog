@@ -61,18 +61,41 @@ $ yarn run eslint --init
 ? What format do you want your config file to be in? JSON
 ```
 
+`.prettierrc` 생략
 
 
 
+```
+$ yarn add eslint-config-prettier
+```
+
+`.eslintrc.json`
+```json
+"extends" : ["eslint:recommended", "prettier"],
+```
 
 
+eslint가 const를 선언하고 사용하지 않아서 오류로 간주하기 때문에 제외시켜줘야 한다.
 
+`.eslintrc.json`
+```json
+"rules": {
+  "no-unused-vars": "warn",
+  "no-console": "off"
+}
+```
+
+src/index.js
 ```js
+const Koa = require('koa');
+
+const app = new Koa();
+
 // app.use 에서 쓰이는 파라미터 ctx, next
 // ctx = Context 의 줄임말, 웹 요청과 응답에 관한 정보
 // next = 현재 처리 중인 미들웨어의 다음 미들웨어를 호출하는 함수
 // next는 사용하지 않아도 됨.
-
+// next 파라미터를 받고 next(); 사용하지 않아도 됨.
 app.use((ctx, next) => {
   console.log(1);
   next();
@@ -81,4 +104,18 @@ app.use((ctx, next) => {
 app.use(ctx => {
   ctx.body='hello world';
 });
+
+// 간단히 포트만 열고 싶으면 app.listen() 만 사용하고
+// 포트를 열고 실행시키고 싶은 것이 있으면 포트번호 뒤에 화살표 함수를 써준다.
+app.listen(4000);
+
+app.listen(4000, () => {
+  console.log('Listening to port 4000');
+});
+
 ```
+
+```
+$ node src
+```
+
