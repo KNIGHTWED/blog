@@ -7,10 +7,12 @@
     },
     "extends": ["eslint:recommended", "prettier"],
     "parserOptions": {
-        "ecmaVersion": "latest"
+        "ecmaVersion": "latest",
+        "sourceType": "module"
     },
     "rules": {
         "no-unused-vars": "warn",
-        "no-console": "off"
+        "no-console": "off",
+        "no-global-assign": "off"
     }
 }

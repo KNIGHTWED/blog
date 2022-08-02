@@ -105,6 +105,21 @@ app.use(ctx => {
   ctx.body='hello world';
 });
 
+// http://localhost:4000/about/react
+// react의 소개
+router.get('/about/:name?', ctx => {
+  const {name} = ctx.params;
+  // name의 존재 유무에 따라 다른 결과 출력
+  ctx.body=name ? `${name}의 소개` : '소개';
+});
+
+// http://localhost:4000/posts?id=10
+// 포스트 #10
+router.get('/posts', ctx => {
+  const { id } = ctx.query;
+  ctx.body = id ? `포스트 #${id}` : '포스트 아이디가 없습니다.';
+});
+
 // 간단히 포트만 열고 싶으면 app.listen() 만 사용하고
 // 포트를 열고 실행시키고 싶은 것이 있으면 포트번호 뒤에 화살표 함수를 써준다.
 app.listen(4000);
@@ -114,6 +129,41 @@ app.listen(4000, () => {
 });
 
 ```
+
+```js
+// scr/main.js
+mongoose
+  .connect(MONGO_URI, { useNewUrlParser: true, useFindAndModify: false})
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((e) => {
+    console.error(e);
+  });
+```
+여기서 `useNewUrlParser`, `useFindAndModify`는 사용할 수 없다.
+몽구스의 버전이 6.0 이상이라면(4.4도 포함되는것 같다.)
+`useNewUrlParser: true`, `useUnifiedTopology: true`, `useCreateIndex: true`, `useFindAndModify: false` 가 기본값이기 때문에
+
+생략해도 된다.
+
+```js
+// scr/main.js
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((e) => {
+    console.error(e);
+  });
+```
+
+
+
+
+
+
 
 
 ## mongodb
