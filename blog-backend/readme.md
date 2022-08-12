@@ -189,3 +189,65 @@ PORT=4000
 MONGO_URI=mongodb://127.0.0.1:27017/blog
 ```
 blog는 데이터베이스의 이름으로 자동으로 생성되기 때문에 미리 생성할 필요는 없다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## MongoDb Compass
+
+
+
+
+
+
+
+
+
+
+
+```
+$ yarn add Joi
+```
+```js
+// Joi
+// 바뀌기 전 문법
+const result = Joi.validate(ctx.request.body, schema);
+if(result.error){
+  ctx.status = 400;
+  ctx.body = result.error;
+  return;
+}
+
+// 바뀐 문법
+const validation = schema.validate(ctx.request.body);
+if(validation.error){
+  ctx.status = 400;
+  ctx.body = validation.error;
+  return;
+}
+
+```
