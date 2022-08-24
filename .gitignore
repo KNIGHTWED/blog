@@ -2,3 +2,4 @@
 # dependencies
 blog-backend/node_modules
 blog-backend/test.txt
+blog-backend/.env
