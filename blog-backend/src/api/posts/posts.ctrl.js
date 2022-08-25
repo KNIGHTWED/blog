@@ -4,31 +4,32 @@ import Joi from 'joi';
 
 const { ObjectId } = mongoose.Types;
 
-/*
-POST /api/posts
-{
-  title: '제목',
-  body: '내용',
-  tags:['태그1', '태그2']
-}
-*/
-
-export const checkObjectId = (ctx, next) => {
+export const getPostById = async (ctx, next) => {
   const { id } = ctx.params;
   if (!ObjectId.isValid(id)) {
     ctx.status = 400; // Bad Request
     return;
   }
-  return next();
+
+  try {
+    const post = await Post.findById(id);
+    // 포스트가 존재하지 않을 때
+    if (!post) {
+      ctx.status = 404;
+      return;
+    }
+    ctx.state.post = post;
+    return next();
+  } catch (e) {
+    ctx.throw(500, e);
+  }
 };
 
 export const write = async (ctx) => {
   const schema = Joi.object().keys({
     title: Joi.string().required(),
     body: Joi.string().required(),
-    tags: Joi.array()
-    .items(Joi.string())
-    .required(),
+    tags: Joi.array().items(Joi.string()).required()
   });
 
   // const result = Joi.validate(ctx.request.body, schema);
@@ -44,6 +45,7 @@ export const write = async (ctx) => {
     title,
     body,
     tags,
+    user: ctx.state.user,
   });
   try {
     await post.save();
@@ -53,46 +55,48 @@ export const write = async (ctx) => {
   }
 };
 
-export const list = async (ctx) => {
+export const list = async ctx => {
 // query는 문자열이기 때문에 숫자로 변환해 주어야 합니다.
 // 값이 주어지지 않았다면 1을 기본으로 사용합니다.
-const page = parseInt(ctx.query.page || '1', 10);
+  const page = parseInt(ctx.query.page || '1', 10);
 
-if(page < 1){
-  ctx.status = 400;
-  return;
-}
+  if(page < 1){
+    ctx.status = 400;
+    return;
+  }
+
+  const { tag, username } = ctx.query;
+  // tag, username 값이 유효한지 체크하고
+  // 유효하면 객체에 넣는다.
+  const query = {
+    ...(username ? {'user.username': username} : {}),
+    ...(tag ? {tags: tag} : {}),
+  };
 
   try {
-    const posts = await Post.find()
+    const posts = await Post.find(query)
     .sort({ _id: -1 })
     .limit(10)
     .skip((page - 1) * 10)
     .lean()
     .exec();
-    const postCount = await Post.countDocuments().exec();
+    const postCount = await Post.countDocuments(query).exec();
     ctx.set('Last-Page', Math.ceil(postCount / 10));
-    ctx.body = posts.map(post => post.toJSON()).map(post => ({
+    ctx.body = posts.map(post => ({
       ...post,
       body: post.body.length < 200 ? post.body : `${post.body.slice(0, 200)}...`,
     }));
+    // ctx.body = posts.map(post => post.toJSON()).map(post => ({
+    //   ...post,
+    //   body: post.body.length < 200 ? post.body : `${post.body.slice(0, 200)}...`,
+    // }));
   } catch (e) {
     ctx.throw(500, e);
   }
 };
 
-export const read = async (ctx) => {
-  const { id } = ctx.params;
-  try {
-    const post = await Post.findById(id).exec();
-    if (!post) {
-      ctx.status = 404;
-      return;
-    }
-    ctx.body = post;
-  } catch (e) {
-    ctx.throw(500, e);
-  }
+export const read = ctx => {
+  ctx.body = ctx.state.post;
 };
 
 export const remove = async (ctx) => {
@@ -136,3 +140,12 @@ export const update = async (ctx) => {
     ctx.throw(500, e);
   }
 };
+
+export const checkOwnPost = (ctx, next) => {
+  const { user, post } = ctx.state;
+  if(post.user._id.toString() !== user._id){
+    ctx.status = 403;
+    return;
+  }
+  return next();
+}
