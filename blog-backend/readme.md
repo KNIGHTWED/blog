@@ -39,7 +39,6 @@ $ mkdir blog-backend
 $ cd blog-backend
 $ yarn init -y
 ```
-
 mkdir로 폴더를 생성해줘도 되지만 탐색기를 이용해 직접 폴더를 생성해줘도 된다.
 
 
@@ -64,74 +63,32 @@ $ yarn run eslint --init
 `.prettierrc` 생략
 
 
-
 ```
 $ yarn add eslint-config-prettier
 ```
 
 `.eslintrc.json`
 ```json
+
+...
+
 "extends" : ["eslint:recommended", "prettier"],
-```
 
+...
 
-eslint가 const를 선언하고 사용하지 않아서 오류로 간주하기 때문에 제외시켜줘야 한다.
-
-`.eslintrc.json`
-```json
 "rules": {
   "no-unused-vars": "warn",
   "no-console": "off"
 }
 ```
+eslint가 const를 선언하고 사용하지 않아서 오류로 간주하기 때문에 제외시켜줘야 한다.
 
-src/index.js
-```js
-const Koa = require('koa');
 
-const app = new Koa();
 
-// app.use 에서 쓰이는 파라미터 ctx, next
-// ctx = Context 의 줄임말, 웹 요청과 응답에 관한 정보
-// next = 현재 처리 중인 미들웨어의 다음 미들웨어를 호출하는 함수
-// next는 사용하지 않아도 됨.
-// next 파라미터를 받고 next(); 사용하지 않아도 됨.
-app.use((ctx, next) => {
-  console.log(1);
-  next();
-});
-
-app.use(ctx => {
-  ctx.body='hello world';
-});
-
-// http://localhost:4000/about/react
-// react의 소개
-router.get('/about/:name?', ctx => {
-  const {name} = ctx.params;
-  // name의 존재 유무에 따라 다른 결과 출력
-  ctx.body=name ? `${name}의 소개` : '소개';
-});
-
-// http://localhost:4000/posts?id=10
-// 포스트 #10
-router.get('/posts', ctx => {
-  const { id } = ctx.query;
-  ctx.body = id ? `포스트 #${id}` : '포스트 아이디가 없습니다.';
-});
-
-// 간단히 포트만 열고 싶으면 app.listen() 만 사용하고
-// 포트를 열고 실행시키고 싶은 것이 있으면 포트번호 뒤에 화살표 함수를 써준다.
-app.listen(4000);
-
-app.listen(4000, () => {
-  console.log('Listening to port 4000');
-});
-
-```
 
 ```js
 // scr/main.js
+// 수정 전
 mongoose
   .connect(MONGO_URI, { useNewUrlParser: true, useFindAndModify: false})
   .then(() => {
@@ -140,15 +97,8 @@ mongoose
   .catch((e) => {
     console.error(e);
   });
-```
-여기서 `useNewUrlParser`, `useFindAndModify`는 사용할 수 없다.
-몽구스의 버전이 6.0 이상이라면(4.4도 포함되는것 같다.)
-`useNewUrlParser: true`, `useUnifiedTopology: true`, `useCreateIndex: true`, `useFindAndModify: false` 가 기본값이기 때문에
 
-생략해도 된다.
-
-```js
-// scr/main.js
+// 수정 후
 mongoose
   .connect(MONGO_URI)
   .then(() => {
@@ -158,10 +108,145 @@ mongoose
     console.error(e);
   });
 ```
+여기서 `useNewUrlParser`, `useFindAndModify`는 사용할 수 없다.
+몽구스의 버전이 6.0 이상이라면(4.4도 포함되는것 같다.)
+`useNewUrlParser: true`, `useUnifiedTopology: true`, `useCreateIndex: true`, `useFindAndModify: false` 가 기본값이기 때문에 생략해도 된다.
+
+서버 실행
+```
+$ node src
+```
+
+
+## 미들웨어
+
+미들웨어 함수의 구조
+```js
+(ctx, next) => {
+}
+```
+
+Koa의 미들웨어 함수는 두 개의 파라미터를 받는다.
+
+첫 번째 파라미터는 ctx, 두 번째 파라미터는 next(next는 생략해도 된다.)
+
+```js
+const Koa = require('koa');
+const app = new Koa();
+
+app.use((ctx, next) => {
+  console.log(ctx.url);
+  console.log(1);
+  next();
+});
+
+app.use((ctx, next) => {
+  console.log(2);
+});
+
+app.listen(4000, () => {
+  console.log('Listening to port 4000');
+});
+```
+
+실행 화면
+```
+Listening to port 4000
+/
+1
+2
+/favicon.ico
+1
+2
+```
+
+next()는 다음 미들웨어 실행시킨다.
+
+미들웨어에 여러 조건을 포함할 수 있다.
+
+예를 들어 authorized=1 이라는 쿼리 파라미터가 없으면 다음 미들웨어를 처리하지 않게 할 수도 있다.
+
+```js
+app.use((ctx, next) => {
+  console.log(ctx.url);
+  console.log(1);
+  if(ctx.query.authorized !== '1'){
+    ctx.status = 401; // Unauthorized
+    return;
+  }
+  next();
+});
+```
+
+## async / await
+
+```js
+app.use(async (ctx, next) => {
+  console.log(ctx.url);
+  console.log(1);
+  if(ctx.query.authorized !== '1'){
+    ctx.status = 401; // Unauthorized
+    return;
+  }
+  await next();
+  console.log('END');
+});
+```
+
+## nodemon
+
+nodemon을 사용하면 코드를 변경(저장)할 때마다 서버를 자동으로 재시작 해준다.
+```
+$ yarn add -dev nodemon
+```
+
+package.json
+```json
+...
+"scripts": {
+  "start": "node src",
+  "start:dev": "nodemon --watch src/ src/index.js"
+}
+```
+
+`$ yarn start:dev` 명령어를 실행하고 index.js에서 기존 미들웨어를 모두 제거하고 저장하면 서버가 재실행 된다.
+
+
+## koa router
+
+```
+$ yarn add koa-router
+```
+
+```js
+const Koa = require('koa');
+const Router = require('koa-router');
+
+const app = new Koa();
+const router = new Router();
+
+router.get('/', ctx => {
+  ctx.body = '홈';
+});
+router.get('/about', ctx => {
+  ctx.body = '소개';
+});
+
+// app 인스턴스에 라우터 적용
+app.use(router.routes()).use(router.allowedMethods());
+
+app.listen(4000, () => {
+  console.log('Listening to port 4000');
+});
+```
+http://localhost:4000 에 접속하면 '홈'
+http://localhost:4000/about 에 접속하면 '소개' 
 
 
 
+## 라우트 파라미터와 쿼리
 
+https://thebook.io/080203/ch21/05/02/
 
 
 
@@ -269,3 +354,5 @@ JWT는 JSON Web Token의 약자로, 데이터가 JSON으로 이루어져 있는 
 서명데이터는 해싱 알고리즘을 통해 만들어진다.
 
 서버에서 만든 토큰은 서명이 있기 때문에 무결성이 보장된다.
+
+
